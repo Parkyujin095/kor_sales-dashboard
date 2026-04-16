@@ -3770,23 +3770,24 @@ document.addEventListener('DOMContentLoaded', function() {
   if (pipTable && !pipTable._pipClick) { pipTable._pipClick = true; pipTable.addEventListener('click', pipNameClick); }
   if (pipRisk && !pipRisk._pipClick) { pipRisk._pipClick = true; pipRisk.addEventListener('click', pipNameClick); }
 });
-/* ── 비밀번호 잠금 ── */
+/* ── 비밀번호 잠금 (SHA-256, Web Crypto API) ── */
 (function() {
-  var PW_HASH = 'f4b4a4d2a4a6e79c0d39eab8f7e8e6d4c2a0b8f6e4d2c0b8a6d4e2f0c8b6a4';
-  function simpleHash(s) {
-    var h = 0;
-    for (var i = 0; i < s.length; i++) { h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; }
-    return String(h >>> 0);
-  }
-  var STORED_H = simpleHash('135246');
-  var ov = document.getElementById('lock-overlay');
+  var STORED_H = 'cfb789f892fdf2a45ab1bc1f046932df431a7708165393e0f13fab2c9267c0eb';
+  var ov  = document.getElementById('lock-overlay');
   var inp = document.getElementById('lock-input');
   var err = document.getElementById('lock-err');
+  /* 잠금 비활성 (해시 미설정) */
+  if (!STORED_H) { if(ov) ov.style.display='none'; return; }
   /* 세션 내 이미 인증된 경우 바로 해제 */
   if (sessionStorage.getItem('sd_auth') === STORED_H) { ov.classList.add('hide'); setTimeout(function(){ ov.style.display='none'; }, 400); }
-  window.lockCheck = function() {
+  async function sha256(s) {
+    var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+    return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+  }
+  window.lockCheck = async function() {
     var val = inp ? inp.value : '';
-    if (simpleHash(val) === STORED_H) {
+    var h = await sha256(val);
+    if (h === STORED_H) {
       sessionStorage.setItem('sd_auth', STORED_H);
       ov.classList.add('hide');
       setTimeout(function(){ ov.style.display='none'; }, 400);
