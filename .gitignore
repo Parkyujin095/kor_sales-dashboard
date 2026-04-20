@@ -5,5 +5,4 @@
 __pycache__/
 config.py
 logs/
-config.py
-logs/
+*.ps1
