@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>인센티브 대시보드</title>
+  <link href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Nanum Square", "NanumSquare", sans-serif;
+      background: #eef0f4;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .portal-wrap {
+      background: #f4f5f7;
+      border-radius: 16px;
+      width: min(100%, 680px);
+      padding: 40px 44px 44px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .page-header { margin-bottom: 28px; }
+    .page-header h2 { font-size: 22px; font-weight: 700; color: #1a2236; margin-bottom: 4px; }
+    .page-header p { font-size: 13px; color: #6b7280; }
+
+    .admin-notice {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #EEF2FF; border: 0.5px solid #c7d2fe; border-radius: 20px;
+      padding: 5px 14px; font-size: 12px; color: #1B3A6B; font-weight: 700;
+      margin-bottom: 20px; cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      font-family: "Nanum Square", "NanumSquare", sans-serif;
+    }
+    .admin-notice:hover { background: #dde4ff; border-color: #a5b4fc; }
+    .admin-notice svg { width: 13px; height: 13px; stroke: #1B3A6B; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 520px) { .card-grid { grid-template-columns: 1fr; } }
+
+    .nav-card {
+      background: #fff; border: 0.5px solid #e5e7eb; border-radius: 12px;
+      padding: 28px 24px; cursor: pointer;
+      transition: border-color 0.15s, transform 0.12s, box-shadow 0.15s;
+      display: flex; flex-direction: column; gap: 20px; text-align: left;
+      font-family: "Nanum Square", "NanumSquare", sans-serif;
+    }
+    .nav-card:hover { border-color: #1B3A6B; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(27,58,107,0.1); }
+    .nav-card:active { transform: scale(0.99); }
+
+    .card-icon { width: 40px; height: 40px; background: #EEF2FF; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .card-icon svg { width: 20px; height: 20px; stroke: #1B3A6B; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .card-tag { font-size: 10px; font-weight: 700; color: #6b7280; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 6px; }
+    .card-title { font-size: 15px; font-weight: 700; color: #1a2236; line-height: 1.5; }
+    .card-desc { font-size: 12px; color: #9ca3af; margin-top: 4px; line-height: 1.6; }
+    .card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 16px; border-top: 0.5px solid #f3f4f6; }
+    .card-footer-label { font-size: 11px; color: #9ca3af; }
+    .card-arrow { width: 28px; height: 28px; background: #1B3A6B; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .card-arrow svg { width: 14px; height: 14px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  
+/* ===== 비밀번호 게이트 (auth_gate) ===== */
+#__gate__ {
+  position: fixed; inset: 0;
+  background: #eef0f4;
+  z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  font-family: "Nanum Square", "NanumSquare", sans-serif;
+}
+#__gate__.hidden { display: none; }
+#__gate__ .gate-card {
+  background: #fff; border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 44px 48px;
+  width: min(100%, 440px);
+  text-align: center;
+}
+#__gate__ .gate-lock {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: #EEF2FF;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+}
+#__gate__ .gate-lock svg {
+  width: 26px; height: 26px;
+  stroke: #1B3A6B; fill: none; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+#__gate__ h1.gate-title {
+  font-size: 22px; font-weight: 800; color: #1a2236;
+  margin: 0 0 6px;
+  font-family: "Nanum Square", "NanumSquare", sans-serif;
+}
+#__gate__ p.gate-desc {
+  font-size: 14px; color: #9ca3af; margin: 0 0 28px;
+}
+#__gate__ label.gate-label {
+  display: block; font-size: 13px; font-weight: 800; color: #1f2937;
+  text-align: left; margin-bottom: 8px;
+}
+#__gate__ .gate-input-wrap { position: relative; margin-bottom: 20px; }
+#__gate__ input.gate-input {
+  width: 100%; padding: 13px 44px 13px 14px;
+  border: 1px solid #e5e7eb; border-radius: 10px;
+  font-size: 15px; background: #f9fafb; color: #1f2937;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+#__gate__ input.gate-input:focus {
+  outline: none; border-color: #1B3A6B; background: #fff;
+}
+#__gate__ button.gate-eye {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: #9ca3af; line-height: 0;
+}
+#__gate__ button.gate-eye svg {
+  width: 20px; height: 20px;
+  stroke: currentColor; fill: none; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+#__gate__ button.gate-submit {
+  width: 100%; background: #1B3A6B; color: #fff;
+  border: none; border-radius: 10px;
+  padding: 14px; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+  transition: background 0.15s, transform 0.08s;
+}
+#__gate__ button.gate-submit:hover { background: #15306b; }
+#__gate__ button.gate-submit:active { transform: scale(0.99); }
+#__gate__ button.gate-submit:disabled { background: #9ca3af; cursor: not-allowed; }
+#__gate__ .gate-error {
+  margin-top: 14px; color: #dc2626;
+  font-size: 13px; font-weight: 700; min-height: 20px;
+}
+
+</style>
+</head>
+<body>
+<div id="__gate__" role="dialog" aria-modal="true"><form class="gate-card" id="__gateForm__" autocomplete="off"><div class="gate-lock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div><h1 class="gate-title">세일즈 대시보드</h1><p class="gate-desc">비밀번호를 입력해주세요.</p><label class="gate-label" for="__gatePwd__">비밀번호</label><div class="gate-input-wrap"><input type="password" class="gate-input" id="__gatePwd__" placeholder="비밀번호를 입력하세요" autocomplete="current-password" required /><button type="button" class="gate-eye" id="__gateEye__" aria-label="비밀번호 표시/숨김"><svg viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.7 5.1a10.9 10.9 0 0 1 1.3-.1c5 0 9 4 10 7-0.3 1-1 2.2-2 3.4"/><path d="M6.6 6.6C4.3 8 2.7 10 2 12c1 3 5 7 10 7 2 0 3.8-.6 5.3-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></div><button type="submit" class="gate-submit" id="__gateBtn__">확인</button><div class="gate-error" id="__gateErr__"></div></form></div>
+  <div class="portal-wrap">
+    <div class="page-header">
+      <h2>인센티브 대시보드</h2>
+      <p>확인할 대시보드를 선택해주세요.</p>
+    </div>
+
+    <button class="admin-notice" onclick="goTo('admin')">
+      <svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="5"/><path d="M6 5v3M6 4h.01"/></svg>
+      관리자용 리포트
+    </button>
+
+    <div class="card-grid">
+      <div class="nav-card" onclick="goTo('manager')">
+        <div class="card-icon">
+          <svg viewBox="0 0 20 20"><circle cx="8" cy="7" r="3"/><path d="M2 17c0-3 2.5-5 6-5s6 2 6 5"/><path d="M15 11l2-2-2-2"/><circle cx="15" cy="6" r="2"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-tag">Manager</div>
+          <div class="card-title">세일즈 매니저 인센티브</div>
+          <div class="card-desc">팀 매니저 인센티브 및 팀별 매출 성과를 확인합니다.</div>
+        </div>
+        <div class="card-footer">
+          <span class="card-footer-label">판매 · 조정 · SGF 인센티브</span>
+          <div class="card-arrow"><svg viewBox="0 0 14 14"><path d="M3 7h8M7 3l4 4-4 4"/></svg></div>
+        </div>
+      </div>
+
+      <div class="nav-card" onclick="goTo('sales')">
+        <div class="card-icon">
+          <svg viewBox="0 0 20 20"><path d="M3 14l4-4 3 3 5-6"/><circle cx="16" cy="5" r="2"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-tag">Sales</div>
+          <div class="card-title">세일즈 인센티브</div>
+          <div class="card-desc">나의 인센티브 현황 및 목표 대비 매출을 확인합니다.</div>
+        </div>
+        <div class="card-footer">
+          <span class="card-footer-label">판매 · 조정 · SGF 인센티브</span>
+          <div class="card-arrow"><svg viewBox="0 0 14 14"><path d="M3 7h8M7 3l4 4-4 4"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function goTo(page) {
+      if (page === 'manager') window.location.href = 'sales_manager_dashboard.html';
+      else if (page === 'sales')   window.location.href = 'incentive_dashboard.html';
+      else if (page === 'admin')   window.location.href = 'admin_report.html';
+    }
+  </script>
+
+<script>
+(function(){
+  var ENC = {"ct": "v/aDeFeDOmNP9rSgPORE+3Jw6B4p1hE+tnhJ", "salt": "huw/pg0dpzpUokYSdGaglg==", "iv": "ijZsM759c8+qYraa", "iter": 250000};
+  var HAS_INIT = false;
+  var SESSION_KEY = '__dashboard_pwd__';
+
+  function b64d(s){
+    var b = atob(s); var a = new Uint8Array(b.length);
+    for (var i=0; i<b.length; i++) a[i] = b.charCodeAt(i);
+    return a;
+  }
+
+  async function decryptWith(password){
+    if (!window.crypto || !window.crypto.subtle) {
+      throw new Error('브라우저가 Web Crypto API 를 지원하지 않습니다.');
+    }
+    var enc = new TextEncoder();
+    var keyMat = await crypto.subtle.importKey(
+      'raw', enc.encode(password), {name:'PBKDF2'}, false, ['deriveKey']
+    );
+    var key = await crypto.subtle.deriveKey(
+      { name:'PBKDF2', salt: b64d(ENC.salt), iterations: ENC.iter, hash: 'SHA-256' },
+      keyMat,
+      { name:'AES-GCM', length: 256 },
+      false,
+      ['decrypt']
+    );
+    var pt = await crypto.subtle.decrypt(
+      { name:'AES-GCM', iv: b64d(ENC.iv) }, key, b64d(ENC.ct)
+    );
+    return JSON.parse(new TextDecoder().decode(pt));
+  }
+
+  function hide(){ var g = document.getElementById('__gate__'); if (g) g.classList.add('hidden'); }
+  function show(){ var g = document.getElementById('__gate__'); if (g) g.classList.remove('hidden'); }
+  function showErr(m){ var el = document.getElementById('__gateErr__'); if (el) el.textContent = m || ''; }
+
+  function onUnlocked(pwd, payload){
+    try { sessionStorage.setItem(SESSION_KEY, pwd); } catch(e){}
+    window.__PAYLOAD__ = payload;
+    hide();
+    if (HAS_INIT && typeof window.__initAfterUnlock === 'function') {
+      try { window.__initAfterUnlock(); } catch(e){ console.error('init error', e); }
+    }
+  }
+
+  async function tryPassword(pwd){
+    try { var p = await decryptWith(pwd); onUnlocked(pwd, p); return true; }
+    catch(e){ return false; }
+  }
+
+  document.addEventListener('DOMContentLoaded', async function(){
+    var cached = null;
+    try { cached = sessionStorage.getItem(SESSION_KEY); } catch(e){}
+    if (cached) {
+      var ok = await tryPassword(cached);
+      if (ok) return;
+      try { sessionStorage.removeItem(SESSION_KEY); } catch(e){}
+    }
+    show();
+
+    var form = document.getElementById('__gateForm__');
+    var input = document.getElementById('__gatePwd__');
+    var btn = document.getElementById('__gateBtn__');
+    var eye = document.getElementById('__gateEye__');
+
+    if (eye && input) {
+      eye.addEventListener('click', function(){
+        input.type = (input.type === 'password') ? 'text' : 'password';
+      });
+    }
+
+    form.addEventListener('submit', async function(ev){
+      ev.preventDefault();
+      showErr('');
+      btn.disabled = true; btn.textContent = '확인 중...';
+      var ok = await tryPassword(input.value || '');
+      btn.disabled = false; btn.textContent = '확인';
+      if (!ok) { showErr('비밀번호가 올바르지 않습니다.'); input.select(); }
+    });
+
+    setTimeout(function(){ try { input.focus(); } catch(e){} }, 10);
+  });
+})();
+</script>
+
+</body>
+</html>
