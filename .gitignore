@@ -1,8 +1,0 @@
-*.py
-*.xlsm
-*.xlsx
-*.bat
-__pycache__/
-config.py
-logs/
-*.ps1

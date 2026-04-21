@@ -1,3 +1,0 @@
-# KR-DASHBOARD
-
-TEST
