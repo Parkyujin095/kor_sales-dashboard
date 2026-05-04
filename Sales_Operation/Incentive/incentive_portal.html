@@ -187,17 +187,42 @@
 
   <script>
     function goTo(page) {
-      if (page === 'manager') window.location.href = 'sales_manager_dashboard.html';
-      else if (page === 'sales')   window.location.href = 'incentive_dashboard.html';
-      else if (page === 'admin')   window.location.href = 'admin_report.html';
+      var nav = window.__navWithPwd__ || function(t){ window.location.href = t; };
+      if (page === 'manager') nav('sales_manager_dashboard.html');
+      else if (page === 'sales')   nav('incentive_dashboard.html');
+      else if (page === 'admin')   nav('admin_report.html');
     }
   </script>
 
 <script>
 (function(){
-  var ENC = {"ct": "fnkrHo1ID6SAC2F6vM309ZU30JvYWs857ZD+", "salt": "oZmiIHYHvP+UTJFTPLYAmw==", "iv": "ow2rw9yWTFkmYBMA", "iter": 250000};
+  var ENC = {"ct": "2xF7lJwnDwCOGkWwQ64oABalnF/8yxsjdPPb", "salt": "J0umAYCHyd2epjNAl1PpYQ==", "iv": "i/Ki8BKZebP0oSnA", "iter": 250000};
   var HAS_INIT = false;
   var SESSION_KEY = '__dashboard_pwd__';
+
+  // 런타임 변수: file:// 환경에서 sessionStorage 가 페이지별 격리되는 경우 대비.
+  // unlock 성공/hash 수신 시 여기에 저장 → __navWithPwd__ 우선 사용.
+  var _runtimePwd = '';
+
+  // URL hash 로 비번이 넘어왔으면(다른 페이지에서 이동) 즉시 보관 + hash 제거
+  try {
+    var _h = window.location.hash || '';
+    var _m = _h.match(/__pwd__=([^&]+)/);
+    if (_m) {
+      _runtimePwd = decodeURIComponent(_m[1]);
+      try { sessionStorage.setItem(SESSION_KEY, _runtimePwd); } catch(e) {}
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  } catch(e) {}
+
+  // 다른 페이지로 이동할 때 비번을 hash 에 실어 보내는 헬퍼 (모든 페이지의 portal 링크에서 사용)
+  window.__navWithPwd__ = function(target) {
+    var p = _runtimePwd || '';
+    if (!p) {
+      try { p = sessionStorage.getItem(SESSION_KEY) || ''; } catch(e){}
+    }
+    window.location.href = target + (p ? ('#__pwd__=' + encodeURIComponent(p)) : '');
+  };
 
   function b64d(s){
     var b = atob(s); var a = new Uint8Array(b.length);
@@ -231,6 +256,7 @@
   function showErr(m){ var el = document.getElementById('__gateErr__'); if (el) el.textContent = m || ''; }
 
   function onUnlocked(pwd, payload){
+    _runtimePwd = pwd;
     try { sessionStorage.setItem(SESSION_KEY, pwd); } catch(e){}
     window.__PAYLOAD__ = payload;
     hide();
@@ -245,13 +271,18 @@
   }
 
   document.addEventListener('DOMContentLoaded', async function(){
-    var cached = null;
-    try { cached = sessionStorage.getItem(SESSION_KEY); } catch(e){}
-    if (cached) {
-      var ok = await tryPassword(cached);
+    // 후보 비번 시도 순서: hash 로 받은 비번(우선) → sessionStorage 캐시
+    var candidates = [];
+    if (_runtimePwd) candidates.push(_runtimePwd);
+    try {
+      var c = sessionStorage.getItem(SESSION_KEY);
+      if (c && c !== _runtimePwd) candidates.push(c);
+    } catch(e){}
+    for (var i = 0; i < candidates.length; i++) {
+      var ok = await tryPassword(candidates[i]);
       if (ok) return;
-      try { sessionStorage.removeItem(SESSION_KEY); } catch(e){}
     }
+    try { sessionStorage.removeItem(SESSION_KEY); } catch(e){}
     show();
 
     var form = document.getElementById('__gateForm__');
